@@ -98,24 +98,35 @@ export default function Home() {
       )}
     
       {/* Container da tabela de clientes*/}
-      <div className={`text-white bg-[#003839] border-2 border-black flex flex-col rounded w-[80vw] h-fit max-h-screen z-10 justify-center items-center p-8 ${showNewClientForm ? "blur-sm select-none pointer-events-none" : ""}`}>
+      <div className={`text-white bg-[#003839] border-2 border-black rounded
+        flex flex-col justify-start items-center
+        max-w-screen sm:w-screen md:w-[80vw]
+        h-screen max-h-screen sm:h-screen md:h-fit
+        z-10  p-8 ${showNewClientForm ? "blur-sm select-none pointer-events-none" : ""}`}>
         
         {/* Cabeçalho do container */}
-        <div className="mb-4 w-full flex flex-row justify-between items-center gap-3">
-          <h1 className="text-2xl font-bold">Clientes</h1>
+        <div className="mb-4 w-full flex flex-col md:flex-row justify-between items-center gap-3">
+          <div className="flex flex-row gap-3 w-full">
+            <h1 className="text-2xl font-bold">Clientes</h1>
 
-          {/* Campo de busca para filtrar os clientes por nome */}
-          <input ref={searchRef} type="text" disabled={showNewClientForm} placeholder="Buscar por nome..." className="w-full p-2 bg-[#ffffff1d] rounded font-bold placeholder:font-thin text-start"/>
-          
-          {/* Botão para abrir o formulário de adicionar novo cliente */}
-          <button className={`bg-[#05ff00] ${showNewClientForm ? "" : "hover:scale-105 "}transition text-[#003839] font-bold py-2 px-4 rounded w-fit md:text-nowrap sm:text-wrap ${showNewClientForm ? "cursor-default" : "cursor-pointer"}`}
-            onClick={() => setShowNewClientForm(true)}>
-            { clienteSelecionado ? 'Editar Cliente' : '+ Novo Cliente' }
-          </button>
+            {/* Campo de busca para filtrar os clientes por nome */}
+            <input ref={searchRef} type="text" disabled={showNewClientForm} placeholder="Buscar por nome..." className="w-full p-2 bg-[#ffffff1d] rounded font-bold placeholder:font-thin text-start"/>
+          </div>
+          <div className="flex flex-row gap-3">
+            {/* Botão para abrir o formulário de adicionar novo cliente */}
+            <button className={`bg-[#05ff00] ${showNewClientForm ? "" : "hover:scale-105 "}transition text-[#003839] font-bold py-2 px-4 rounded w-fit md:text-nowrap sm:text-wrap ${showNewClientForm ? "cursor-default" : "cursor-pointer"}`}
+              onClick={() => setShowNewClientForm(true)}>
+              { clienteSelecionado ? 'Editar Cliente' : '+ Novo Cliente' }
+            </button>
+            <button className={`bg-[#05ff00] ${showNewClientForm ? "" : "hover:scale-105 "}transition text-[#003839] font-bold py-2 px-4 rounded w-fit md:text-nowrap sm:text-wrap ${showNewClientForm ? "cursor-default" : "cursor-pointer"}`}
+              onClick={() => setShowNewClientForm(true)}>
+              Importar Clientes
+            </button>
+          </div>
         </div>
         
         {/* Área da tabela de clientes */}
-        <div className="overflow-y-auto h-96 w-full">
+        <div className="overflow-y-auto max-h-full h-full md:h-96 w-full">
           
           {/* Caso não haja clientes, uma mensagem aparece */}
           { ( filteredClientes === null || filteredClientes?.length === 0 ) ? (
