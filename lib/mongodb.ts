@@ -26,6 +26,7 @@ function getClient(): Promise<MongoClient> {
   return globalForMongo._mongoClientPromise;
 }
 
+// Conecta com o MongoDB
 export async function getDb(): Promise<Db> {
   const client = await getClient();
   return client.db("cadastro-fractal");

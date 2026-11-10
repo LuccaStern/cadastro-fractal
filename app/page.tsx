@@ -3,6 +3,7 @@
 import { Cliente } from "../types/cliente";
 import NewClient from "@/components/NewClient";
 import { useRef, useEffect, useState } from "react";
+import { listaClientes, type EstadoCadastro } from "@/app/action";
 
 export default function Home() {
 
@@ -12,110 +13,57 @@ export default function Home() {
     { label: "Email", name: "email", type: "email" },
     { label: "Endereço", name: "endereco", type: "text" }
   ];
-  // Placeholder de clientes, para fins de teste
-  const clientes: Cliente[] = [
-    { nome: "Maria Joana da Silva",
-      telefone: "+55 (12) 99999-9999",
-      email: "mariazinha173@gmail.com",
-      endereco: "R. Navegantes 84"
-    },
-    { nome: "João da Silva",
-      telefone: "+55 (11) 91234-5678",
-      email: "joao.silva@email.com",
-      endereco: "R. João da Silva 123"
-    },
-    { nome: "João da Silva",
-      telefone: "+55 (11) 91234-5678",
-      email: "joao.silva@email.com",
-      endereco: "R. João da Silva 123"
-    },
-    { nome: "João da Silva",
-      telefone: "+55 (11) 91234-5678",
-      email: "joao.silva@email.com",
-      endereco: "R. João da Silva 123"
-    },
-    { nome: "João da Silva",
-      telefone: "+55 (11) 91234-5678",
-      email: "joao.silva@email.com",
-      endereco: "R. João da Silva 123"
-    },
-    { nome: "João da Silva",
-      telefone: "+55 (11) 91234-5678",
-      email: "joao.silva@email.com",
-      endereco: "R. João da Silva 123"
-    },
-    { nome: "João da Silva",
-      telefone: "+55 (11) 91234-5678",
-      email: "joao.silva@email.com",
-      endereco: "R. João da Silva 123"
-    },
-    { nome: "João da Silva",
-      telefone: "+55 (11) 91234-5678",
-      email: "joao.silva@email.com",
-      endereco: "R. João da Silva 123"
-    },
-    { nome: "João da Silva",
-      telefone: "+55 (11) 91234-5678",
-      email: "joao.silva@email.com",
-      endereco: "R. João da Silva 123"
-    },
-    { nome: "João da Silva",
-      telefone: "+55 (11) 91234-5678",
-      email: "joao.silva@email.com",
-      endereco: "R. João da Silva 123"
-    },
-    { nome: "João da Silva",
-      telefone: "+55 (11) 91234-5678",
-      email: "joao.silva@email.com",
-      endereco: "R. João da Silva 123"
-    },
-    { nome: "João da Silva",
-      telefone: "+55 (11) 91234-5678",
-      email: "joao.silva@email.com",
-      endereco: "R. João da Silva 123"
-    },
-    { nome: "João da Silva",
-      telefone: "+55 (11) 91234-5678",
-      email: "joao.silva@email.com",
-      endereco: "R. João da Silva 123"
-    },
-    { nome: "João da Silva",
-      telefone: "+55 (11) 91234-5678",
-      email: "joao.silva@email.com",
-      endereco: "R. João da Silva 123"
-    },
-    { nome: "João da Silva",
-      telefone: "+55 (11) 91234-5678",
-      email: "joao.silva@email.com",
-      endereco: "R. João da Silva 123"
-    },
-    { nome: "João da Silva",
-      telefone: "+55 (11) 91234-5678",
-      email: "joao.silva@email.com",
-      endereco: "R. João da Silva 123"
-    },
-    { nome: "João da Silva",
-      telefone: "+55 (11) 91234-5678",
-      email: "joao.silva@email.com",
-      endereco: "R. João da Silva 123"
-    }
-  ];
 
+  // Mensagens que aparecem caso não haja lista de clientes
+  const errorMsgListaCliente = {
+    loading: "Carregando clientes...",
+    listaVazia: "Nenhum cliente cadastrado.",
+    notFound: "Cliente não encontrado."
+  }
+
+  // Lista dos clientes
+  const [clientes, setClientes] = useState<Cliente[] | null>(null);
+  // Guarda o cliente selecionado que poderá ser editado
   const [clienteSelecionado, setClienteSelecionado] = useState<Cliente | null>(null);
+  // Qual das mensagens aparece
+  const [semClientesMensagem, setSemClientesMensagem] = useState<string>(errorMsgListaCliente.loading);
 
   // Estados para controlar a busca e o formulário de novo cliente
   const [searchTerm, setSearchTerm] = useState("");
-  const [filteredClientes, setFilteredClientes] = useState<Cliente[]>(clientes);
+  // Guarda os Clientes filtrados pelo SearchTerm
+  const [filteredClientes, setFilteredClientes] = useState<Cliente[] | null>(null);
+  // Diz se o modal de adicionar clientes deve ser renderizado ou não
   const [showNewClientForm, setShowNewClientForm] = useState(false);
 
   // Referência para o input de busca
   const searchRef = useRef<HTMLInputElement>(null);
 
-  // Sempre que o input de busca mudar, atualiza o estado searchTerm
+  // Realiza a consulta ao MongoDB
+  function listarClientes() {
+    setSemClientesMensagem(errorMsgListaCliente.loading)
+    listaClientes().then((resultado) => {
+      if (resultado.sucesso) {
+        setClientes(resultado.clientes);
+        if (resultado.clientes.length === 0) {
+          setSemClientesMensagem(errorMsgListaCliente.listaVazia);
+        } else {
+          setSemClientesMensagem(errorMsgListaCliente.notFound);
+        }
+      } else {
+        setSemClientesMensagem(resultado.mensagem);
+      }
+    });
+  }
+
   useEffect(() => {
+    
+    // Chama a consulta ao MongoDB
+    listarClientes()
+
     const searchInput = searchRef.current;
     if (!searchInput) return;
-
+    
+    // Sempre que o input de busca mudar, atualiza o estado searchTerm
     searchInput.addEventListener("input", () => {
       setSearchTerm(searchInput.value);
     });
@@ -124,11 +72,11 @@ export default function Home() {
   // Sempre que searchTerm mudar, atualiza a lista de clientes filtrados
   useEffect(() => {
     setFilteredClientes(
-      clientes.filter(cliente =>
+      clientes?.filter(cliente =>
         cliente.nome.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+      ) || null
     );
-  }, [searchTerm]);
+  }, [searchTerm, clientes]);
 
   return (
     <main className="w-screen h-screen flex flex-row justify-center items-center bg-black">
@@ -141,7 +89,12 @@ export default function Home() {
       
       {/* Formulário de Novo Cliente (Modal)*/}
       { showNewClientForm && (
-        <NewClient atributosClientes={atributosClientes} setShowNewClientForm={setShowNewClientForm} cliente={clienteSelecionado} />
+        <NewClient
+          atributosClientes={atributosClientes}
+          setShowNewClientForm={setShowNewClientForm}
+          cliente={clienteSelecionado}
+          setCliente={setClienteSelecionado}
+          listarClientes={listarClientes}/>
       )}
     
       {/* Container da tabela de clientes*/}
@@ -165,9 +118,9 @@ export default function Home() {
         <div className="overflow-y-auto h-96 w-full">
           
           {/* Caso não haja clientes, uma mensagem aparece */}
-          { filteredClientes.length === 0 ? (
+          { ( filteredClientes === null || filteredClientes?.length === 0 ) ? (
             <div className="flex justify-center items-center h-full w-full">
-              <p className="text-white text-3xl text-center">Nenhum cliente encontrado</p>
+              <p className="text-white text-3xl text-center">{semClientesMensagem}</p>
             </div>
           ) : (
             /* Tabela de clientes */
@@ -180,11 +133,13 @@ export default function Home() {
                 </tr>
               </thead>
               <tbody>
-                { filteredClientes.map((cliente, index) => (
-                  <tr key={index}  className={`cursor-pointer ${clienteSelecionado === cliente ? "bg-[#05ff00] text-[#003839]" : ""}`} onClick={() => {
+                { filteredClientes?.map((cliente, index) => (
+                  <tr key={index} className={`cursor-pointer ${clienteSelecionado === cliente ? "bg-[#05ff00] text-[#003839]" : ""}`} onClick={() => {
                       if (cliente === clienteSelecionado) {
+                        // Se já selecionado, desseleciona
                         setClienteSelecionado(null);
                       } else {
+                        // Se não está selecionado, seleciona
                         setClienteSelecionado(cliente);
                       }}
                     }>

@@ -1,26 +1,34 @@
 "use server";
 
-import { criarCliente } from "@/lib/clientes";
-import type { Cliente } from "@/types/cliente";
+import { criarCliente, consultarClientes, atualizarCliente } from "@/lib/clientes";
+import type { Cliente, DadosCliente } from "@/types/cliente";
 
 // Tipo criado para devolver mensagens de erro por campo
-type TextoPorCampo = Partial<Record<keyof Cliente, string>>;
+type TextoPorCampo = Partial<Record<keyof DadosCliente, string>>;
 
+// Tipo para retornar o resultado do cadastro, se há erros e quais eles são
 export type EstadoCadastro = {
   sucesso: boolean;
   mensagem: string;
   erros?: TextoPorCampo;
-  valores?: TextoPorCampo;
+  valores?: TextoPorCampo; // Valores originais dos campos para que o usuário possa corrigir 
+};
+
+// Tipo da resposta da consulta à lista de Clientes
+export type EstadoConsulta = {
+  sucesso: boolean;
+  clientes: Cliente[];
+  mensagem: string;
 };
 
 // Verifica se o valor do FormData.get() é string, se não for devolve ""
-function lerTexto(formData: FormData, campo: keyof Cliente): string {
+function lerTexto(formData: FormData, campo: keyof DadosCliente): string {
   const valor = formData.get(campo);
   return typeof valor === "string" ? valor.trim() : "";
 }
 
 // Valida os dados e devolve as mensagens de erro
-function validar(cliente: Cliente): TextoPorCampo {
+function validar(cliente: DadosCliente): TextoPorCampo {
   const erros: TextoPorCampo = {};
   
   // Validação do nome, limites sugeridos pelo Claude
@@ -45,14 +53,17 @@ function validar(cliente: Cliente): TextoPorCampo {
   return erros;
 }
 
+// Cadastra ou Atualiza o Cliente
 export async function cadastrarCliente(
   _estadoAnterior: EstadoCadastro,
-  formData: FormData
+  formData: FormData,
+  oldClient?: Cliente // Caso haja esse parâmetro, o Cliente será atualizado
 ): Promise<EstadoCadastro> {
+
   // Object.fromEntries(formData) criaria um objeto com todos os campos do formulário,
   // incluindo os que não fazem parte da aplicação.
   // Para prevenir, deve-se montar o objeto campo a campo
-  const cliente: Cliente = {
+  const cliente: DadosCliente = {
     nome: lerTexto(formData, "nome"),
     telefone: lerTexto(formData, "telefone"),
     email: lerTexto(formData, "email").toLowerCase(),
@@ -65,26 +76,41 @@ export async function cadastrarCliente(
     return { sucesso: false, mensagem: "Corrija os campos destacados.", erros, valores: cliente };
   }
 
+  // Decide de deve Atualizar ou Criar um novo e trata os errros
   try {
-    const resultado = await criarCliente(cliente);
-
-    if (!resultado.ok) {
-      return {
-        sucesso: false,
-        mensagem: "Este e-mail já está cadastrado.",
-        erros: { email: "E-mail já cadastrado." },
-        valores: cliente,
-      };
-    }
-
-    return { sucesso: true, mensagem: "Cliente cadastrado com sucesso!" };
+    const result = oldClient ? await atualizarCliente(oldClient, cliente) : await criarCliente(cliente)
+    
+    // Caso esteja Ok, não há mensagem. Se não estiver Ok e deveria ter sido atualizado,
+    // diz que não que não encontrou o cliente a ser atualizado. Caso tenha dado erro e
+    // deveria ter sido criado, o catch trata, por isso não há mensagem.
+    const msg = result.ok ? "" : oldClient ? "Cliente a ser atualizado não encontrado" : ""
+    
+    return { sucesso: result.ok, mensagem: msg };
   } catch (erro) {
+
     // Log detalhado somente no servidor. O usuário recebe uma mensagem genérica
     console.error("Erro ao salvar cliente:", erro);
+
     return {
       sucesso: false,
       mensagem: "Não foi possível salvar agora. Tente novamente em instantes.",
       valores: cliente,
     };
+  }
+}
+
+// Lista os Clientes no MongoDB
+export async function listaClientes(): Promise<EstadoConsulta> {
+  try {
+    const resultado = await consultarClientes();
+    return { 
+      sucesso: resultado.ok,
+      clientes: resultado.clientes,
+      mensagem: "" // Se não há erro, não há mensagem
+    }
+  } catch (erro) {
+    // Log detalhado somente no servidor. O usuário recebe uma mensagem genérica
+    console.error("Erro ao consultar clientes:", erro);
+    return { sucesso: false, clientes: [], mensagem: "Não foi possível consultar os clientes agora." };
   }
 }
