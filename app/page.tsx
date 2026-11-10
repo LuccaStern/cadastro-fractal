@@ -6,7 +6,12 @@ import { useRef, useEffect, useState } from "react";
 
 export default function Home() {
 
-  const atributosClientes = [{ label: "Nome", type: "text" }, { label: "Telefone", type: "text" }, { label: "Email", type: "email" }, { label: "Endereço", type: "text" }];
+  const atributosClientes = [
+    { label: "Nome", name: "nome", type: "text" },
+    { label: "Telefone", name: "telefone", type: "text" },
+    { label: "Email", name: "email", type: "email" },
+    { label: "Endereço", name: "endereco", type: "text" }
+  ];
   // Placeholder de clientes, para fins de teste
   const clientes: Cliente[] = [
     { nome: "Maria Joana da Silva",
