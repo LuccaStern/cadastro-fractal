@@ -96,6 +96,8 @@ export default function Home() {
     }
   ];
 
+  const [clienteSelecionado, setClienteSelecionado] = useState<Cliente | null>(null);
+
   // Estados para controlar a busca e o formulário de novo cliente
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredClientes, setFilteredClientes] = useState<Cliente[]>(clientes);
@@ -134,7 +136,7 @@ export default function Home() {
       
       {/* Formulário de Novo Cliente (Modal)*/}
       { showNewClientForm && (
-        <NewClient atributosClientes={atributosClientes} setShowNewClientForm={setShowNewClientForm} />
+        <NewClient atributosClientes={atributosClientes} setShowNewClientForm={setShowNewClientForm} cliente={clienteSelecionado} />
       )}
     
       {/* Container da tabela de clientes*/}
@@ -150,7 +152,7 @@ export default function Home() {
           {/* Botão para abrir o formulário de adicionar novo cliente */}
           <button className={`bg-[#05ff00] ${showNewClientForm ? "" : "hover:scale-105 "}transition text-[#003839] font-bold py-2 px-4 rounded w-fit md:text-nowrap sm:text-wrap ${showNewClientForm ? "cursor-default" : "cursor-pointer"}`}
             onClick={() => setShowNewClientForm(true)}>
-            + Novo Cliente
+            { clienteSelecionado ? 'Editar Cliente' : '+ Novo Cliente' }
           </button>
         </div>
         
@@ -174,7 +176,13 @@ export default function Home() {
               </thead>
               <tbody>
                 { filteredClientes.map((cliente, index) => (
-                  <tr key={index}>
+                  <tr key={index}  className={`cursor-pointer ${clienteSelecionado === cliente ? "bg-[#05ff00] text-[#003839]" : ""}`} onClick={() => {
+                      if (cliente === clienteSelecionado) {
+                        setClienteSelecionado(null);
+                      } else {
+                        setClienteSelecionado(cliente);
+                      }}
+                    }>
                     { atributosClientes.map(({label}, index) => (
                       <td className="border border-white p-2" key={index}>{cliente[label.toLowerCase().replace('ç', 'c') as keyof Cliente]}</td>
                     )) }

@@ -1,6 +1,9 @@
+import { Cliente } from "@/types/cliente";
+
 export default function Home(props: {
     atributosClientes: { label: string; type: string }[]
     setShowNewClientForm: React.Dispatch<React.SetStateAction<boolean>>
+    cliente: Cliente | null
 }) {
     return (
         /* Formulário de cadastro de cliente */
@@ -23,10 +26,15 @@ export default function Home(props: {
             { props.atributosClientes.map(({label, type}, index) => (
                 <div className="mb-4 w-full" key={index}>
                     <label htmlFor={label.toLowerCase()} className="font-semibold mb-1">{label}</label>
-                    <input className="w-full p-2 bg-[#ffffff1d] rounded font-bold placeholder:font-thin text-start" placeholder={label} type={type} id={label.toLowerCase()} name={label.toLowerCase()} required/>
+                    <input className="w-full p-2 bg-[#ffffff1d] rounded font-bold placeholder:font-thin text-start"
+                        placeholder={label} type={type} id={label.toLowerCase()} name={label.toLowerCase()}
+                        defaultValue={props.cliente ? props.cliente[label.toLowerCase().replace('ç', 'c') as keyof Cliente] : ''}
+                        required/>
                 </div>
             ))}
-            <button type="submit" className="bg-[#05ff00] hover:scale-105 transition text-[#003839] font-bold py-2 px-4 rounded w-full cursor-pointer">Cadastrar</button>
+            <button type="submit" className="bg-[#05ff00] hover:scale-105 transition text-[#003839] font-bold py-2 px-4 rounded w-full cursor-pointer">
+                {props.cliente ? 'Atualizar' : 'Cadastrar'}
+            </button>
         </form>
     )
 }
