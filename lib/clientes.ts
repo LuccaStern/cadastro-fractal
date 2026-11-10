@@ -54,3 +54,15 @@ export async function atualizarCliente(oldCliente: Cliente, cliente: DadosClient
   // Retorna um boolean que indica se o Cliente foi encontrado
   return { ok: resultado.matchedCount === 1}
 }
+
+// Adiciona vários clientes ao mesmo tempo
+export async function adicionarMultiplosClientes(clientes: DadosCliente[]) {
+  const colecao = await colecaoClientes();
+
+  const resultado = await colecao.insertMany(clientes);
+
+  return {
+    ok: true,
+    quantidade: resultado.insertedCount
+  };
+}

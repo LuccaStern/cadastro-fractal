@@ -1,6 +1,6 @@
 "use server";
 
-import { criarCliente, consultarClientes, atualizarCliente } from "@/lib/clientes";
+import { criarCliente, consultarClientes, atualizarCliente, adicionarMultiplosClientes } from "@/lib/clientes";
 import type { Cliente, DadosCliente } from "@/types/cliente";
 
 // Tipo criado para devolver mensagens de erro por campo
@@ -11,7 +11,8 @@ export type EstadoCadastro = {
   sucesso: boolean;
   mensagem: string;
   erros?: TextoPorCampo;
-  valores?: TextoPorCampo; // Valores originais dos campos para que o usuário possa corrigir 
+  valores?: TextoPorCampo; // Valores originais dos campos para que o usuário possa corrigir,
+  clientesInvalidos?: DadosCliente[] // Clientes inválidos importados do CSV 
 };
 
 // Tipo da resposta da consulta à lista de Clientes
@@ -41,8 +42,10 @@ function validar(cliente: DadosCliente): TextoPorCampo {
 
   // Um email não pode conter mais do que 254 caracteres e deve ter o formato "local@dominio"
   // representado pela regex abaixo
-  if (cliente.email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cliente.email)) {
-    erros.email = "Informe um e-mail válido.";
+  if (cliente.email != "Não Informado") {
+    if (cliente.email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cliente.email)) {
+      erros.email = "Informe um e-mail válido.";
+    }
   }
 
   // Validação de endereço, limites sugeridos pelo Claude
@@ -112,5 +115,35 @@ export async function listaClientes(): Promise<EstadoConsulta> {
     // Log detalhado somente no servidor. O usuário recebe uma mensagem genérica
     console.error("Erro ao consultar clientes:", erro);
     return { sucesso: false, clientes: [], mensagem: "Não foi possível consultar os clientes agora." };
+  }
+}
+
+// Recebe os clientes do CSV e verifica seus dados
+export async function importarClientes(clientes: DadosCliente[]): Promise<EstadoCadastro> {
+  const clientesValidos = [] as DadosCliente[]
+  const clientesInvalidos = [] as DadosCliente[]
+  clientes.map((cliente) => {
+    const erros = validar(cliente);
+    if (Object.keys(erros).length === 0) {
+      clientesValidos.push(cliente)
+    } else {
+      clientesInvalidos.push(cliente)
+    }
+  });
+  
+  try {
+    await adicionarMultiplosClientes(clientesValidos)
+    return {
+      sucesso: true,
+      mensagem: `${clientesValidos.length} clientes adicionados`,
+      clientesInvalidos: clientesInvalidos
+    }
+  } catch (erro) {
+    // Log detalhado somente no servidor. O usuário recebe uma mensagem genérica
+    console.error("Erro ao consultar clientes:", erro);
+    return {
+      sucesso: false,
+      mensagem: 'Não foi possível importar os clientes'
+    }
   }
 }

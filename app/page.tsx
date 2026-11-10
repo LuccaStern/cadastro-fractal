@@ -1,9 +1,10 @@
 'use client'
 
-import { Cliente } from "../types/cliente";
+import { Cliente, DadosCliente } from "../types/cliente";
 import NewClient from "@/components/NewClient";
 import { useRef, useEffect, useState } from "react";
-import { listaClientes, type EstadoCadastro } from "@/app/action";
+import Papa from "papaparse";
+import { listaClientes, importarClientes, type EstadoCadastro } from "@/app/action";
 
 export default function Home() {
 
@@ -37,6 +38,48 @@ export default function Home() {
 
   // Referência para o input de busca
   const searchRef = useRef<HTMLInputElement>(null);
+  // Referência para o input do CSV
+  const importCSVRef = useRef<HTMLInputElement>(null);
+  // Guarda a resposta da importação do CSV
+  const [respostaCSV, setRespostaCSV] = useState(null as EstadoCadastro | null)
+
+  // Abre o seletor do input do CSV
+  function abrirSeletor() {
+    importCSVRef.current?.click();
+  }
+
+  // Lê o CSV e já limpa alguns campos vazios
+  function lerCSV(event: React.ChangeEvent<HTMLInputElement>) {
+    const arquivo = event.target.files?.[0];
+
+    if (!arquivo) return;
+
+    Papa.parse<Record<string, string>>(arquivo, {
+      header: true,
+      skipEmptyLines: "greedy",
+
+      transformHeader: (header) => header.trim().toLowerCase().replace('ç', 'c'),
+
+      complete: async (resultado) => {
+        const clientesCSV: DadosCliente[] = resultado.data.map((linha) => ({
+          // Transforma o nome em minúsculas, exceto as iniciais
+          nome: linha.nome?.trim().toLocaleLowerCase().split(' ').map((nome) => {return [nome.substring(0,1).toUpperCase(), nome.substring(1)].join('')}).join(' ') || "Não Informado",
+          telefone: linha.telefone?.trim() || "Não Informado",
+          email: linha.email?.trim().toLowerCase() || "Não Informado",
+          endereco: linha.endereco?.trim() || "Não Informado"
+        }));
+
+        const resposta = await importarClientes(clientesCSV);
+
+        setRespostaCSV(resposta)
+
+        listarClientes()
+      }
+    });
+
+    event.target.value = "";
+  }
+
 
   // Realiza a consulta ao MongoDB
   function listarClientes() {
@@ -119,12 +162,30 @@ export default function Home() {
               { clienteSelecionado ? 'Editar Cliente' : '+ Novo Cliente' }
             </button>
             <button className={`bg-[#05ff00] ${showNewClientForm ? "" : "hover:scale-105 "}transition text-[#003839] font-bold py-2 px-4 rounded w-fit md:text-nowrap sm:text-wrap ${showNewClientForm ? "cursor-default" : "cursor-pointer"}`}
-              onClick={() => setShowNewClientForm(true)}>
+              onClick={abrirSeletor}>
               Importar Clientes
             </button>
+            {/* Input invisível para selecionar o CSV. É acionado ao clicar no botão acima */}
+            <input
+                ref={importCSVRef}
+                type="file"
+                accept=".csv,text/csv"
+                style={{ display: "none" }}
+                onChange={lerCSV}
+            />
           </div>
         </div>
-        
+
+        {/* Área de resposta ao importar o CSV */}
+        { respostaCSV &&
+          <div className="flex flex-row flex-wrap justify-center items-center gap-2">
+            <p className={`${ respostaCSV.sucesso ? 'text-white' : 'text-red-300'} text-sm mb-2`}>{respostaCSV.mensagem}</p>
+            { respostaCSV.clientesInvalidos &&
+              <a href="#invalid" className={`text-white underline text-sm mb-2`}>Veja os clientes inválidos aqui</a>
+            }
+          </div>
+        }
+
         {/* Área da tabela de clientes */}
         <div className="overflow-y-auto max-h-full h-full md:h-96 w-full">
           
@@ -154,13 +215,43 @@ export default function Home() {
                         setClienteSelecionado(cliente);
                       }}
                     }>
-                    { atributosClientes.map(({label}, index) => (
-                      <td className="border border-white p-2" key={index}>{cliente[label.toLowerCase().replace('ç', 'c') as keyof Cliente]}</td>
-                    )) }
+                    { atributosClientes.map(({label}, index) => {
+                      const item = cliente[label.toLowerCase().replace('ç', 'c') as keyof Cliente]
+                      return (
+                        <td className={`border border-white p-2${item === 'Não Informado' ? ' text-[#ff2525] font-bold': ''}`} key={index}>{item}</td>
+                    )}) }
                   </tr>
                 )) }
               </tbody>
             </table>
+          )}
+
+          {/* Área para tabela de clientes inválidos ao importar o CSV */}
+          { respostaCSV?.clientesInvalidos && (
+            <>
+            <h1 id='invalid' className='text-2xl font-bold'>Clientes inválidos</h1>
+            {/* Tabela de clientes INVÁLIDOS importados do CSV */}
+            <table className="w-full border-separate border-spacing-0 border border-white">
+              <thead className="bg-[#003839] sticky top-0">
+                <tr>
+                  { atributosClientes.map(({label}, index) => (
+                    <th className="border border-white p-2" key={index}>{label}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                { respostaCSV.clientesInvalidos.map((cliente, index) => (
+                  <tr key={index}>
+                    { atributosClientes.map(({label}, index) => {
+                      const item = cliente[label.toLowerCase().replace('ç', 'c') as keyof DadosCliente]
+                      return (
+                        <td className={`border border-white p-2${item === 'Não Informado' ? ' text-[#ff2525] font-bold': ''}`} key={index}>{item}</td>
+                    )}) }
+                  </tr>
+                )) }
+              </tbody>
+            </table>
+            </>
           )}
         </div>
       </div>
