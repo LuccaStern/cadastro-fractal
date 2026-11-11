@@ -1,5 +1,7 @@
 import "server-only"; // Impede que seja executado no cliente, impedindo que a URI e o driver cheguem ao navegador
 import { MongoClient, type Db } from "mongodb";
+import dns from "node:dns";
+dns.setServers(["8.8.8.8", "1.1.1.1"]);
 
 // Guarda a conexão em globalThis para sobreviver ao hot reload do Next em dev
 const globalForMongo = globalThis as typeof globalThis & {
